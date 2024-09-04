@@ -13,21 +13,20 @@ final class SignInEmailViewModel : ObservableObject{
     @Published var email = ""
     @Published var password = ""
     
-    func signIn() {
+    func signUp() async throws {
         guard !email.isEmpty, !password.isEmpty else{
             print("이메일과 비밀번호를 찾을 수 없습니다")
             return
         }
-        
-        Task{
-            do{
-                let returnedUserDate = try await AuthenticationManager.shared.createUser(email: email, password: password)
-                print("Success")
-                print(returnedUserDate)
-            } catch{
-                print("Error: \(error)")
-            }
+        try await AuthenticationManager.shared.createUser(email: email, password: password)
+    }
+    
+    func signIn() async throws {
+        guard !email.isEmpty, !password.isEmpty else{
+            print("이메일과 비밀번호를 찾을 수 없습니다")
+            return
         }
+        try await AuthenticationManager.shared.signInUser(email: email, password: password)
     }
     
 }
@@ -35,6 +34,7 @@ final class SignInEmailViewModel : ObservableObject{
 struct SigninEmailView: View {
     
     @StateObject private var viewModel = SignInEmailViewModel()
+    @Binding var showSignInView: Bool
     
     var body: some View {
         VStack{
@@ -49,7 +49,24 @@ struct SigninEmailView: View {
                 .cornerRadius(10)
             
             Button {
-                viewModel.signIn()
+                Task{
+                    do {
+                        try await viewModel.signUp()
+                        showSignInView = false
+                        return
+                    } catch {
+                        print(error)
+                    }
+                    
+                    do {
+                        try await viewModel.signIn()
+                        showSignInView = false
+                        return
+                    } catch {
+                       print(error)
+                    }
+
+                }
             } label: {
                 Text("Sing in")
                     .font(.headline)
@@ -69,6 +86,6 @@ struct SigninEmailView: View {
 
 #Preview {
     NavigationStack{
-        SigninEmailView()
+        SigninEmailView(showSignInView: .constant(false))
     }
 }
